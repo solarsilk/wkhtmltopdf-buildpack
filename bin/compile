@@ -35,7 +35,7 @@ FONTS_DIR=$(cd "$BIN_DIR/../fonts"; pwd)
   echo "-----> Downloading wkhtmltopdf tar"
   curl -L $WKHTMLTOPDF_URL -o $WKHTMLTOPDF_TAR
 #fi
-s
+
 echo "-----> Unpacking tar"
 tar -xf $WKHTMLTOPDF_TAR -C $TMP_PATH
 
