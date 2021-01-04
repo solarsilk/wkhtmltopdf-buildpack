@@ -1,56 +1,33 @@
 #!/usr/bin/env bash
-# bin/compile <build-dir> <cache-dir>
-
-set -e
+# bin/compile BUILD_DIR CACHE_DIR ENV_DIR
 
 BUILD_DIR=$1
 CACHE_DIR=$2
-ENV_DIR=$3
 
-BIN_PATH="$BUILD_DIR/bin"
-LIB_PATH="$BUILD_DIR/vendor/wkhtmltox/lib"
-TMP_PATH="$BUILD_DIR/tmp"
-mkdir -p $CACHE_DIR $BIN_PATH $LIB_PATH $TMP_PATH
+WKHTMLTOPDF_URL="https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/0.12.5/wkhtmltox_0.12.5-1.focal_amd64.deb"
+XZ_FILENAME=$CACHE_DIR/$(basename $WKHTMLTOPDF_URL)
+WKHTMLTOPDF_PATH=$CACHE_DIR/wkhtmltox
+DESTINATION=$BUILD_DIR/bin  # will be `/app/bin` inside dyno
 
-if [[ -f "$ENV_DIR/WKHTMLTOPDF_VERSION" ]]; then
-  WKHTMLTOPDF_VERSION=$(cat "$ENV_DIR/WKHTMLTOPDF_VERSION")
-else
-  WKHTMLTOPDF_VERSION="0.12.6"
+
+# Download and extract wkhtmltopdf
+if [ ! -d "$WKHTMLTOPDF_PATH" ]; then
+	echo '-----> Downloading wkhtmltopdf'
+	mkdir -p $(dirname $XZ_FILENAME)
+	wget --quiet --continue --output-document="$XZ_FILENAME" "$WKHTMLTOPDF_URL"
+
+	echo '-----> Extracting wkhtmltopdf'
+	tar --xz --extract --file "$XZ_FILENAME" --directory "$CACHE_DIR"
+	rm "$XZ_FILENAME"
 fi
 
-WKHTMLTOPDF_URL="https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/${WKHTMLTOPDF_VERSION}/wkhtmltox-${WKHTMLTOPDF_VERSION}_linux-generic-amd64.tar.xz"
-WKHTMLTOPDF_TAR="$CACHE_DIR/wkhtmltox.tar.xz"
-WKHTMLTOPDF_PATH="$TMP_PATH/wkhtmltox"
-WKHTMLTOPDF_BINARIES="$WKHTMLTOPDF_PATH/bin"
-WKHTMLTOPDF_LIBS="$WKHTMLTOPDF_PATH/lib"
+# Move files to /app/bin
+if [ ! -f "$DESTINATION/wkhtmltopdf" ]; then
+	echo '-----> Moving wkhtmltopdf binaries to /app/bin'
 
-BIN_DIR=$(cd $(dirname $0); pwd)
-FONTS_DIR=$(cd "$BIN_DIR/../fonts"; pwd)
+	if [ ! -d "$DESTINATION" ]; then
+		mkdir -p "$DESTINATION"
+	fi
 
-if [ -f $WKHTMLTOPDF_TAR ]; then
-  echo "-----> Using wkhtmltopdf tar from cache"
-else
-  echo "-----> Downloading wkhtmltopdf tar"
-  curl -L $WKHTMLTOPDF_URL -o $WKHTMLTOPDF_TAR
+	cp $WKHTMLTOPDF_PATH/bin/* $DESTINATION
 fi
-
-echo "-----> Unpacking tar"
-tar -xf $WKHTMLTOPDF_TAR -C $TMP_PATH
-
-echo "-----> Setting permissions"
-chmod +x $WKHTMLTOPDF_BINARIES/*
-
-echo "-----> Moving binaries to the right place"
-mv $WKHTMLTOPDF_BINARIES/* $BIN_PATH/
-
-echo "-----> Moving libs to the right place"
-mv $WKHTMLTOPDF_LIBS/* $LIB_PATH/
-
-echo "-----> Cleaning up"
-rm -rf $WKHTMLTOPDF_PATH
-
-echo "-----> Installing fonts"
-mkdir -p $1/.fonts
-ls $FONTS_DIR
-cp $FONTS_DIR/* $1/.fonts/
-fc-cache -f $1/.fonts
