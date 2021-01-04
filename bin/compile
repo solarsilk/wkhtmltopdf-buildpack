@@ -36,8 +36,8 @@ FONTS_DIR=$(cd "$BIN_DIR/../fonts"; pwd)
   curl -L $WKHTMLTOPDF_URL -o $WKHTMLTOPDF_TAR
 #fi
 
-echo "-----> Unpacking tar"
-tar -xf $WKHTMLTOPDF_TAR -C $TMP_PATH
+#echo "-----> Unpacking tar"
+#tar -xf $WKHTMLTOPDF_TAR -C $TMP_PATH
 
 echo "-----> Setting permissions"
 chmod +x $WKHTMLTOPDF_BINARIES/*
